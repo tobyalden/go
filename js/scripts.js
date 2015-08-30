@@ -87,7 +87,7 @@ canvas.on('mouse:move', function(options) {
   var pointer = canvas.getPointer(event.e);
   var row = Math.round(pointer.x / LINE_SPACING) - 1;
   var col = Math.round(pointer.y / LINE_SPACING) - 1;
-  if(row >= 0 && row < BOARD_SIZE && col >= 0 && col <   BOARD_SIZE) {
+  if(row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === EMPTY) {
     drawStone(row, col, isBlacksTurn, true);
   }
 });
