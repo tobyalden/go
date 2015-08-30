@@ -5,6 +5,7 @@ const BLACK = 1;
 const WHITE = 2;
 
 var db = new Firebase("https://douggo.firebaseio.com");
+var isLoaded = false;
 
 var board = new Array(BOARD_SIZE);
 for (var i = 0; i < BOARD_SIZE; i++) {
@@ -34,14 +35,16 @@ for (var y = 0; y < BOARD_SIZE; y++) {
 }
 
 function drawBoard() {
-  canvas.clear();
-  canvas.add(lines);
-  for(var x = 0; x < BOARD_SIZE; x++) {
-    for(var y = 0; y < BOARD_SIZE; y++) {
-      if(board[x][y] === BLACK) {
-        drawStone(x, y, true, false);
-      } else if(board[x][y] === WHITE) {
-        drawStone(x, y, false, false);
+  if(isLoaded) {
+    canvas.clear();
+    canvas.add(lines);
+    for(var x = 0; x < BOARD_SIZE; x++) {
+      for(var y = 0; y < BOARD_SIZE; y++) {
+        if(board[x][y] === BLACK) {
+          drawStone(x, y, true, false);
+        } else if(board[x][y] === WHITE) {
+          drawStone(x, y, false, false);
+        }
       }
     }
   }
@@ -68,9 +71,24 @@ function drawStone(x, y, isBlack, isTransparent) {
   canvas.add(circle);
 }
 
+var count = 0;
 var movesRef = db.child("moves");
+
+movesRef.once('value', function(snapshot) {
+    if((snapshot.val() === null)) {
+      isLoaded = true;
+    }
+  });
+
 movesRef.orderByKey().on("child_added", function(snapshot) {
   placeStone(snapshot.val().x, snapshot.val().y, false);
+  count++;
+});
+
+movesRef.once("value", function(snapshot) {
+  console.log("initial data loaded!", Object.keys(snapshot.val()).length === count);
+  isLoaded = true;
+  drawBoard();
 });
 
 function placeStone(x, y) {
@@ -80,7 +98,6 @@ function placeStone(x, y) {
     board[x][y] = WHITE;
   }
   isBlacksTurn = !isBlacksTurn;
-  drawBoard();
 }
 
 function logMove(x, y) {
@@ -93,18 +110,22 @@ function logMove(x, y) {
 }
 
 canvas.on('mouse:down', function(options) {
-  var pointer = canvas.getPointer(event.e);
-  var x = Math.round(pointer.x / LINE_SPACING) - 1;
-  var y = Math.round(pointer.y / LINE_SPACING) - 1;
-  logMove(x, y);
+  if(isLoaded) {
+    var pointer = canvas.getPointer(event.e);
+    var x = Math.round(pointer.x / LINE_SPACING) - 1;
+    var y = Math.round(pointer.y / LINE_SPACING) - 1;
+    logMove(x, y);
+  }
 });
 
 canvas.on('mouse:move', function(options) {
-  drawBoard();
-  var pointer = canvas.getPointer(event.e);
-  var row = Math.round(pointer.x / LINE_SPACING) - 1;
-  var col = Math.round(pointer.y / LINE_SPACING) - 1;
-  if(row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === EMPTY) {
-    drawStone(row, col, isBlacksTurn, true);
+  if(isLoaded) {
+    drawBoard();
+    var pointer = canvas.getPointer(event.e);
+    var row = Math.round(pointer.x / LINE_SPACING) - 1;
+    var col = Math.round(pointer.y / LINE_SPACING) - 1;
+    if(row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && board[row][col] === EMPTY) {
+      drawStone(row, col, isBlacksTurn, true);
+    }
   }
 });
