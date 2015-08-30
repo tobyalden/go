@@ -4,6 +4,8 @@ const EMPTY = 0;
 const BLACK = 1;
 const WHITE = 2;
 
+var db = new Firebase("https://douggo.firebaseio.com");
+
 var board = new Array(BOARD_SIZE);
 for (var i = 0; i < BOARD_SIZE; i++) {
   board[i] = new Array(BOARD_SIZE);
@@ -35,7 +37,7 @@ function drawBoard() {
   canvas.clear();
   canvas.add(lines);
   for(var x = 0; x < BOARD_SIZE; x++) {
-  	for(var y = 0; y < BOARD_SIZE; y++) {
+    for(var y = 0; y < BOARD_SIZE; y++) {
       if(board[x][y] === BLACK) {
         drawStone(x, y, true, false);
       } else if(board[x][y] === WHITE) {
@@ -66,20 +68,35 @@ function drawStone(x, y, isBlack, isTransparent) {
   canvas.add(circle);
 }
 
-drawBoard();
+var movesRef = db.child("moves");
+movesRef.orderByKey().on("child_added", function(snapshot) {
+  placeStone(snapshot.val().x, snapshot.val().y, false);
+});
 
-canvas.on('mouse:down', function(options) {
-  var pointer = canvas.getPointer(event.e);
-  var row = Math.round(pointer.x / LINE_SPACING) - 1;
-  var col = Math.round(pointer.y / LINE_SPACING) - 1;
-  console.log("Placed stone at " + row + ", " + col);
+function placeStone(x, y) {
   if(isBlacksTurn) {
-    board[row][col] = BLACK;
+    board[x][y] = BLACK;
   } else {
-    board[row][col] = WHITE;
+    board[x][y] = WHITE;
   }
   isBlacksTurn = !isBlacksTurn;
   drawBoard();
+}
+
+function logMove(x, y) {
+    var movesRef = db.child("moves");
+    movesRef.push({
+      x: x,
+      y: y
+    });
+  console.log("Logged stone at " + x + ", " + y + ". isBlacksTurn = " + isBlacksTurn);
+}
+
+canvas.on('mouse:down', function(options) {
+  var pointer = canvas.getPointer(event.e);
+  var x = Math.round(pointer.x / LINE_SPACING) - 1;
+  var y = Math.round(pointer.y / LINE_SPACING) - 1;
+  logMove(x, y);
 });
 
 canvas.on('mouse:move', function(options) {
